@@ -28,6 +28,21 @@ https://www.st.com/en/embedded-software/stm32cubel4.html?ecmp=tt9470_gl_link_feb
 (dépot git)
 https://github.com/STMicroelectronics/STM32CubeL4
 git clone https://github.com/STMicroelectronics/STM32CubeL4.git
+Nous avons Drivers/BSP, CMSIS, STM32L4xx_HAL_Driver
+           Middlewares/ST/STemWin, STM32_USB_library,
+                         /Third_Party/FatFs, FreeRTOS
+	   Projects/NUCLEO-L476RG
+	   Utilities/CPU, Fonts, Log, Media
+
+-----------------------------------------------------------------------------------------------------------------------------
+-----------------------------Mise en place de la structure-------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
+Atollic/choisir son workspace_application
+File>New CProject>name et Embedded CProject>Atollic ARM Tools
+                  Hardware configuration>STM32L4>Boards>NUCLEO-L476RG
+
+
+
 
 
 
