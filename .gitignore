@@ -1,0 +1,14 @@
+# Lines starting with  are comments.
+# Ignore files called 'file.ext'
+
+#Enlever les fichiers word
+#pour garder que les pdf
+#/stm32_Initiation/stm32_Initiation_Programs.docx
+#/stm32_practices/stm32_UART.docx
+
+conceptions_infos.docx
+
+# Ignoring directories
+#Enlever tout un répertoire trop volumineux
+#/guetting_Started/applications/CubeMX/UART_IRQ_NVIC/
+
