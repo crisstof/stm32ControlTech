@@ -1,0 +1,58 @@
+-----------------------------------------------------------------------------------------------------------------------------
+-----------------------------Mise en place de la structure-------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
+Microcontrôleur Nucleo-L476RG.
+
+
+Atollic/choisir son workspace_application
+File>New CProject>name (application)
+     Executable:
+          	Embedded V Project>Atollic ARM Tools (ce qui nous amène à choisir le stm32L476RG)
+		STM32L4>NUCLEO-L476RG
+
+
+
+
+
+et Embedded CProject>Atollic ARM Tools
+                  Hardware configuration>STM32L4>Boards>NUCLEO-L476RG
+OU
+File>New C++ Project>name (appluication)
+
+
+Embedded CProject>Atollic ARM Tools
+                  Hardware configuration>STM32L4>Boards>NUCLEO-L476RG (code standar, ST-LINK)
+
+
+****************************************************************************
+discussions
+pour avoir dans debug l'applicaiton.elf et application.binary!
+project>properties C/C++ Build-> Builder type: Internal builder
+
+Librairies HAL cherche stm32lxx_hal_conf_template.h Copier/coller dans racine dossier Inc le fichier stm32lxx_hal_conf.h
+et ajouter au biud le fichier
+Project/Properties dans C/C++ Build/Setting>C Compiler>Include path ../Inc
+
+
+
+Probleme hal flash dans FLASH_SIZE ajout
+#define FLASH_SIZE_DATA_REGISTER           ((uint32_t)0x1FFF75E0)
+   
+#if defined (STM32L451xx) || defined (STM32L452xx) || defined (STM32L462xx)
+#define FLASH_SIZE                         ((((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0xFFFF)) ? (0x200 << 10) : \
+                                            (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) & (0x0FFF)) << 10))
+#else
+#define FLASH_SIZE                         ((((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0xFFFF)) ? (0x400 << 10) : \
+                                            (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) & (0x0FFF)) << 10))
+#endif
+
+
+Probleme
+hal_iwdg.c
+probleme LSI_STARTUP8TIME note declared changer par
+//#define HAL_IWDG_DEFAULT_TIMEOUT        (((6UL * 256UL * 1000UL) / LSI_VALUE) + ((LSI_STARTUP_TIME / 1000UL) + 1UL))
+#define HAL_IWDG_DEFAULT_TIMEOUT            48u
+
+
+
+
