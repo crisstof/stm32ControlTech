@@ -41,6 +41,8 @@ SOFTWARE.
 /* Private variables */
 /* Private function prototypes */
 /* Private functions */
+
+/* Variable statique */
 static GPIO_InitTypeDef init ;//variable de ce type pour l’initialisation
 
 /**
@@ -66,32 +68,59 @@ int main(void)
 
   /* TODO - Add your application code here */
 
-  HAL_Init() ; //Prise ne compte des fonction comme le Delay.
+  HAL_Init() ; //Initialisation comme ma prise en compte des fonctions comme le Delay.
+ // SystemClock_config();
+  __HAL_RCC_GPIOA_CLK_ENABLE(); //valide la clock GPIOA
+
   /*Initialise le port */
-     //init.Alternate=0 //Simple digital IO, not peripheral I/O
-       init.Pin = GPIO_PIN_5 ;
-       init.Mode = GPIO_MODE_OUTPUT_PP  ;
-       init.Pin = GPIO_PIN_5 ;
-       //init.Pull = GPIO_NOPULL ;
-       init.Speed = GPIO_SPEED_FREQ_LOW ;//HIGH, MEDIUM
-
-     //INITIALISATION
-      HAL_GPIO_Init(GPIOA, &init) ;
-
-
+  init.Mode = GPIO_MODE_OUTPUT_PP  ;
+  init.Pull = GPIO_PULLUP;
+  init.Speed = GPIO_SPEED_FREQ_HIGH ;//HIGH, MEDIUM
+  init.Pin = GPIO_PIN_5 ;
+  //INITIALISATION
+  HAL_GPIO_Init(GPIOA, &init) ;
 
 
   /* Infinite loop */
   while (1)
   {
 	i++;
-	int c ;
-	    for(c= 5; c >= 0; c--)
-	    {
-	           HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_SET);
-	           HAL_Delay(5000);
-		   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_RESET);
-	   }
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	HAL_Delay(2000);
+
 
   }
 }
+
+/* Voir autre exemple
+ * int main(void)
+{
+ GPIO_InitTypreDef init ;//variable de ce type pour l’initialisation
+
+ HAL_Init() ; //Prise ne compte des fonction comme le Delay.
+
+  __HAL_RCC_GPIOA_CLK_ENABLE() ; //Enable GPIOA clock
+
+  /*Initialise le port */
+   //init.Alternate=0 //Simple digital IO, not peripheral I/O
+/*
+     init.Pin = GPIO_PIN_5 ;
+     init.Mode = GPIO_MODE_OUPTUT_PP ;
+     init.Pin = GPIO_PIN_5 ;
+     //init.Pull = GPIO_NOPULL ;
+     init.Speed = GPIO_SPEED_FREQ_LOW ;//HIGH, MEDIUM
+
+   //INITIALISATION
+    HAL_GPIO_Init(GPIOA, &init) ;
+
+   while(1)
+   {int i ;
+    for (i= 5; i >= 0; i--)
+           HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_SET);
+           HAL_Delay(500);
+	   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_RESET);
+   }
+
+}
+ */
+
