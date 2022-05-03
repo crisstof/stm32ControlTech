@@ -34,6 +34,10 @@ et ajouter au biud le fichier
 Project/Properties dans C/C++ Build/Setting>C Compiler>Include path ../Inc
 
 
+//*********MODIFICATION SUR LA STRUCTURE HAL DEPUIS PROJET ORIG*************
+//pour ne plus avoir de message à la compilation
+
+*****ERREUR
 
 Probleme hal flash dans FLASH_SIZE ajout
 #define FLASH_SIZE_DATA_REGISTER           ((uint32_t)0x1FFF75E0)
@@ -52,6 +56,81 @@ hal_iwdg.c
 probleme LSI_STARTUP8TIME note declared changer par
 //#define HAL_IWDG_DEFAULT_TIMEOUT        (((6UL * 256UL * 1000UL) / LSI_VALUE) + ((LSI_STARTUP_TIME / 1000UL) + 1UL))
 #define HAL_IWDG_DEFAULT_TIMEOUT            48u
+
+
+******AVERTISSEMENT
+stm32l4xx_||_usb.c
+USBx_DFIFO((uint32_t)ch_ep_num) = __UNALIGNED_UINT32_READ(pSrc);
+Remplace la ligne par le projet ORIG:
+------------------------------------
+HAL_StatusTypeDef USB_WritePacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *src,
+                                  uint8_t ch_ep_num, uint16_t len)
+{
+
+  uint32_t USBx_BASE = (uint32_t)USBx;
+  uint8_t *pSrc = src;
+  uint32_t count32b;
+  uint32_t i;
+
+  count32b = ((uint32_t)len + 3U) / 4U;
+  for (i = 0U; i < count32b; i++)
+  {
+    //avertissement pas de UNALIGNED_UINT32_READ
+	  //USBx_DFIFO((uint32_t)ch_ep_num) = __UNALIGNED_UINT32_READ(pSrc);
+    //remplace par
+    USBx_DFIFO(ch_ep_num) = *((__packed uint32_t *)src);
+    pSrc++;
+    pSrc++;
+    pSrc++;
+    pSrc++;
+  }
+
+
+
+
+UNUSED va vers stm32L4xx_hal_def.h  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define UNUSED(X) (void)X      /* To avoid gcc/g++ warnings */
+sur ORIG nous avons application/common/defs.h
+//*********************************
+#ifndef UNUSED
+#define UNUSED(v)  ((void)(v))
+#endif
+//*********************************
+Même chose pour *USB_ReadPacket..
+***********************************
+
+
+***********************************************************************************************************
+stm32l4xx_hal_uart.c
+ATOMIC_CLEAR_BIT(huart->Instance->CR3, USART_CR3_DMAT);
+Ajouter dans le Driver/CMSIS/Device/ST/STM32L4xx/Include
+
+#define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
+
+#define ATOMIC_CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
+
+
+***********************************************************************************************************
+avertissement dans HAL_UART_Receive
+/* Enable the Transmit Data Register Empty interrupt */
+    ATOMIC_SET_BIT(huart->Instance->CR1, USART_CR1_TXEIE);
+Ajouter le define dans  Driver/CMSIS/Device/ST/STM32L4xx/Include
+#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+#define ATOMIC_SET_BIT(REG, BIT)     ((REG) |= (BIT))
+
+***********************************************************************************************************
+
+
+
+************************************************************************************************************
+		ECTUELLEMENT NOUS AVONS LE PROJET AVEC BIBLIOTHEQUE HAL AVEC 0 ERREUR 0 AVERTISSEMENT
+Nous pouvons maintenant travaller avec le micro-contrôleur
+************************************************************************************************************
+
+
+
+
+
 
 
 

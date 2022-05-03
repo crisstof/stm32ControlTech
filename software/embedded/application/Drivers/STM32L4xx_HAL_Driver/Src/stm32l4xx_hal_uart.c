@@ -1593,6 +1593,10 @@ HAL_StatusTypeDef HAL_UART_DMAPause(UART_HandleTypeDef *huart)
     ATOMIC_CLEAR_BIT(huart->Instance->CR3, USART_CR3_DMAR);
   }
 
+  //********Remplace dans
+
+
+
   __HAL_UNLOCK(huart);
 
   return HAL_OK;

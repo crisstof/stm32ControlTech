@@ -927,6 +927,7 @@ HAL_StatusTypeDef USB_EPStopXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_EPTypeDef 
 HAL_StatusTypeDef USB_WritePacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *src,
                                   uint8_t ch_ep_num, uint16_t len)
 {
+
   uint32_t USBx_BASE = (uint32_t)USBx;
   uint8_t *pSrc = src;
   uint32_t count32b;
@@ -935,12 +936,34 @@ HAL_StatusTypeDef USB_WritePacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *src,
   count32b = ((uint32_t)len + 3U) / 4U;
   for (i = 0U; i < count32b; i++)
   {
-    USBx_DFIFO((uint32_t)ch_ep_num) = __UNALIGNED_UINT32_READ(pSrc);
+    //avertissement pas de UNALIGNED_UINT32_READ
+	  //USBx_DFIFO((uint32_t)ch_ep_num) = __UNALIGNED_UINT32_READ(pSrc);
+    //remplace par
+    USBx_DFIFO(ch_ep_num) = *((__packed uint32_t *)src);
     pSrc++;
     pSrc++;
     pSrc++;
     pSrc++;
   }
+
+  //***************Efface Avertissement
+  //implicit decalaration of function pas de prototype
+  //sinon ajouter le prototype
+  //****Je replace pour ce projet par:***
+
+  /* NOTE : - This function is not required by USB Device FS peripheral, it is used
+                only by USB OTG FS peripheral.
+              - This function is added to ensure compatibility across platforms.
+     */
+
+    /* Prevent unused argument(s) compilation warning */
+    //UNUSED(USBx);
+    //UNUSED(src);
+    //UNUSED(ch_ep_num);
+    //UNUSED(len);
+
+
+  //**********************************
 
   return HAL_OK;
 }
@@ -954,6 +977,7 @@ HAL_StatusTypeDef USB_WritePacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *src,
   */
 void *USB_ReadPacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *dest, uint16_t len)
 {
+/*
   uint32_t USBx_BASE = (uint32_t)USBx;
   uint8_t *pDest = dest;
   uint32_t pData;
@@ -969,9 +993,11 @@ void *USB_ReadPacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *dest, uint16_t len)
     pDest++;
     pDest++;
   }
+*/
 
   /* When Number of data is not word aligned, read the remaining byte */
-  if (remaining_bytes != 0U)
+/*
+if (remaining_bytes != 0U)
   {
     i = 0U;
     __UNALIGNED_UINT32_WRITE(&pData, USBx_DFIFO(0U));
@@ -986,6 +1012,21 @@ void *USB_ReadPacket(USB_OTG_GlobalTypeDef *USBx, uint8_t *dest, uint16_t len)
   }
 
   return ((void *)pDest);
+  */
+//*****Remplacer par pour plus d'avertissement
+
+  /* NOTE : - This function is not required by USB Device FS peripheral, it is used
+                only by USB OTG FS peripheral.
+              - This function is added to ensure compatibility across platforms.
+     */
+
+    /* Prevent unused argument(s) compilation warning */
+    UNUSED(USBx);
+    UNUSED(dest);
+    UNUSED(len);
+
+    return ((void *)NULL);
+
 }
 
 /**
@@ -2539,6 +2580,59 @@ HAL_StatusTypeDef USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep)
   return HAL_OK;
 }
 
+//AJOUT DE ORIG**************************************ICIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII********
+/**
+  * @brief  USB_WritePacket : Writes a packet into the Tx FIFO associated
+  *         with the EP/channel
+  * @param  USBx : Selected device
+  * @param  src :  pointer to source buffer
+  * @param  ch_ep_num : endpoint or host channel number
+  * @param  len : Number of bytes to write
+  * @retval HAL status
+  */
+HAL_StatusTypeDef USB_WritePacket(USB_TypeDef *USBx, uint8_t *src, uint8_t ch_ep_num, uint16_t len)
+{
+  /* NOTE : - This function is not required by USB Device FS peripheral, it is used
+              only by USB OTG FS peripheral.
+            - This function is added to ensure compatibility across platforms.
+   */
+
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(USBx);
+  UNUSED(src);
+  UNUSED(ch_ep_num);
+  UNUSED(len);
+
+  return HAL_OK;
+}
+
+/**
+  * @brief  USB_ReadPacket : read a packet from the Tx FIFO associated
+  *         with the EP/channel
+  * @param  USBx : Selected device
+  * @param  dest : destination pointer
+  * @param  len : Number of bytes to read
+  * @retval pointer to destination buffer
+  */
+void *USB_ReadPacket(USB_TypeDef *USBx, uint8_t *dest, uint16_t len)
+{
+  /* NOTE : - This function is not required by USB Device FS peripheral, it is used
+              only by USB OTG FS peripheral.
+            - This function is added to ensure compatibility across platforms.
+   */
+
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(USBx);
+  UNUSED(dest);
+  UNUSED(len);
+
+  return ((void *)NULL);
+}
+
+
+//************************************************************************************************
+
+
 
 /**
   * @brief  USB_EPSetStall set a stall condition over an EP
@@ -2596,7 +2690,7 @@ HAL_StatusTypeDef USB_EPClearStall(USB_TypeDef *USBx, USB_EPTypeDef *ep)
    * @brief  USB_EPStoptXfer  Stop transfer on an EP
    * @param  USBx  usb device instance
    * @param  ep pointer to endpoint structure
-   * @retval HAL status
+   * @retval HAL status                                  SUPPLEMENT PAR RAPPORT A ORIG STOP
    */
 HAL_StatusTypeDef USB_EPStopXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep)
 {
@@ -2927,8 +3021,10 @@ void USB_ReadPMA(USB_TypeDef *USBx, uint8_t *pbUsrBuf, uint16_t wPMABufAddr, uin
   * @}
   */
 #endif /* defined (USB) || defined (USB_OTG_FS) */
+
 #endif /* defined (HAL_PCD_MODULE_ENABLED) || defined (HAL_HCD_MODULE_ENABLED) */
 
 /**
   * @}
   */
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
