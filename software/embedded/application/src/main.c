@@ -28,12 +28,20 @@ SOFTWARE.
 */
 
 /* Includes */
-#include "stm32l4xx.h"
+
+
+
+
+#include "stm32l4xx_hal.h" //Delay
+
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_gpio_ex.h"
 
 /* Private macro */
 /* Private variables */
 /* Private function prototypes */
 /* Private functions */
+static GPIO_InitTypeDef init ;//variable de ce type pour l’initialisation
 
 /**
 **===========================================================================
@@ -58,9 +66,32 @@ int main(void)
 
   /* TODO - Add your application code here */
 
+  HAL_Init() ; //Prise ne compte des fonction comme le Delay.
+  /*Initialise le port */
+     //init.Alternate=0 //Simple digital IO, not peripheral I/O
+       init.Pin = GPIO_PIN_5 ;
+       init.Mode = GPIO_MODE_OUTPUT_PP  ;
+       init.Pin = GPIO_PIN_5 ;
+       //init.Pull = GPIO_NOPULL ;
+       init.Speed = GPIO_SPEED_FREQ_LOW ;//HIGH, MEDIUM
+
+     //INITIALISATION
+      HAL_GPIO_Init(GPIOA, &init) ;
+
+
+
+
   /* Infinite loop */
   while (1)
   {
 	i++;
+	int c ;
+	    for(c= 5; c >= 0; c--)
+	    {
+	           HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_SET);
+	           HAL_Delay(5000);
+		   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) GPIO_PIN_RESET);
+	   }
+
   }
 }

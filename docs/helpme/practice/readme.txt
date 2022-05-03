@@ -1,0 +1,2 @@
+Une unité périphérique a besoin de la CPU pour effectuer une tâche essentielle. Par exemple la liaison série (USART) vient de recevoir un caractère et il serait opportun de le stocker en mémoire avant qu’une autre donnée n’arrive 
+et ne l’écrase.

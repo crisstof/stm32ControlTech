@@ -1,0 +1,44 @@
+//main.c
+/* Includes */
+#include "stm32l4xx.h"
+#include "stm32l476xx.h"
+
+//#include "IT_TIM2.h"
+
+void configure_usart1_9600bps(void);
+void send(char data);
+void configure_gpio_alternate_push_pull(void);
+
+
+int  main(void){
+	int res = 0;
+    // Configuration de la PWM
+    configure_gpio_pa6_alternate_push_pull (); 
+    configure_pwm_ch1_20khz(TIM3); 
+    set_pulse_percentage(TIM3, 0); 
+    // Configuration de l'ADC
+    configure_gpio_pb0_analog_input();
+    configure_adc_in8();
+    // Démarrage de la PWM
+    start_timer(TIM3);
+    while(1) {
+       /*traitement de scrutation*/
+			 res = convert(); // conversion
+        set_pulse_percentage(TIM3, 100 * res / 0xFFF ) // mise à jour de l’intensité de la led
+   	}
+}
+
+
+//Broche USART PA.9 en mode alternat push pull
+void configure_gpio_alternate_push_pull(){
+	//uint32_t position = 0x20u;
+		RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+		GPIOA->MODER &= 0xABFBFFFF; //PA9 alternate function mode 10
+		//GPIOA->OTYPER = 0x0000000;
+		GPIOA->AFR[1] = 0x0000070;
+}
+
+
+
+
+

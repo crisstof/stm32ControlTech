@@ -1,0 +1,170 @@
+#include "stm32l4xx.h"
+#include "stm32l476xx.h"
+
+void configure_gpio_pa6_push_pull(void);
+void configure_pwm_ch1_20khz(TIM_TypeDef *TIMER);
+void start_timer(TIM_TypeDef *TIMER);
+void set_pulse_percentage(TIM_TypeDef *TIMER,  int pulse);
+void configure_timer2_with_IT(void);
+void TIM2_IRQHandler(void);
+void configure_gpio_pb0_analog_input(void);
+void configure_adc_int8(void);
+ int convert_single(void);
+
+
+
+
+int main(void){
+	 static  int pulse =0;
+	 int res=0;
+	
+	configure_gpio_pa6_push_pull();
+	configure_pwm_ch1_20khz(TIM3);
+	set_pulse_percentage(TIM3, pulse);
+	//configure_timer2_with_IT();
+	//Configuration de l'ADC
+	configure_gpio_pb0_analog_input();
+	configure_adc_int8();
+	//Démarrage de la PWM	
+	start_timer(TIM3);
+	//start_timer(TIM2);
+    while(1) {
+       /*traitement de scrutation*/
+   	res = convert_single(); //conversion
+		//mise à jour de l'intensité de la led
+			pulse = 100 * res / 0xFFF;
+			set_pulse_percentage(TIM3, pulse );
+		}//calcul pour ramener la mesure à l'ADC entre 0 et 0xFFF
+}    //puisque la résolution de ladc est de 12bits
+	
+void configure_gpio_pa6_push_pull(void){
+	 uint32_t position = 0x00u;
+	//configuration de la broche en sortie PA.6
+			RCC -> AHB2ENR |= RCC_AHB2ENR_GPIOAEN  ;// Activer l'horloge gpioa
+			GPIOA->MODER &= 0xFFFFEFFF; //alternate function mode 10/0xABFFEFFF
+	    GPIOA->AFR[position>>3u] = 0x02000000;// |= 0x02000000;
+ 
+}	
+	
+void configure_pwm_ch1_20khz(TIM_TypeDef *TIMER){
+	/*****Set timer Period PWM*****
+	Timer clock 80MHz
+	Period required = (1/50HZ)=0.02 seconds
+	TIM3 16bits resolution  653535
+	ARR value be 65535 then
+	prescaler + 1   = 80000000/(ARR+1)50Hz
+	prescaler = 24 (approx)	
+	TIM3
+  ********************************/
+	//configuration du timer3 TIM3 (32bits)
+			RCC -> APB1ENR1 |= RCC_APB1ENR1_TIM3EN;
+			TIMER->PSC = 0;//prescaler  (80)    configuration de la periode
+	    TIMER->ARR = 3999;//F:20KHZ periode 50microseconde
+	          //Configurer canal CH1 en mode pwm
+	        //affecter la valeur 0b110 aux bits OC1M dans
+	        //le registre CCMR1 du timer
+			TIMER->CCMR1 |=  TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE;
+	        //il faut aussi que CH1 de sortie est validé
+	        //par le bit CC1E du Reg CCER du timer
+			TIMER->CCER |= TIM_CCER_CC1E;
+}
+void start_timer(TIM_TypeDef *TIMER){
+	//enfin lancer le timer
+	        TIMER->CR1 |= TIM_CR1_CEN;
+}
+	
+void set_pulse_percentage(TIM_TypeDef *TIMER, int pulse){
+		//régler la durée de l'impulsion
+	        //fixe dans Reg CCR1 à 20% de la résolution soit 719
+	        //TIM3->CCR1=719;
+	 TIMER->CCR1 =  (TIMER->ARR * (unsigned int) pulse / 100);
+
+}
+/*
+//timer periode de 10ms
+void configure_timer2_with_IT(void){
+	RCC->APB1ENR1 |= 1<<0;
+	TIM2->ARR= 1200;
+	TIM2->PSC=7999;
+    TIM2->DIER |= (1<<0);
+    NVIC->ISER[0] = NVIC->ISER[0] | (1<<28);
+    NVIC->IP[28] |= (7<<4);
+}
+void TIM2_IRQHandler(void){
+	static  int pulse =0;
+	TIM3->SR &= TIM_SR_UIF;
+	pulse = (pulse + 5) %100;
+	set_pulse_percentage(TIM3, pulse);
+}
+*/
+	
+void configure_gpio_pb0_analog_input(){
+    RCC -> AHB2ENR |= RCC_AHB2ENR_GPIOCEN  ;
+    GPIOC->MODER &= 0xFFFFFFFF; //input mode
+	    GPIOC->ASCR |= 0x00000001;//PB0
+ //le mode analog du GPIO permet de filtrer les bruits induits
+//par le GPIO et donc d'avoir une mesure de meilleure qualité.	
+}
+
+void configure_adc_int8(){
+//config ADC pour lancer une conversion sur la voie 8
+//et en récupérer le résultat
+	//activer l'horloge sur la grappe EHB2ENR
+ RCC -> AHB2ENR |= RCC_AHB2ENR_GPIOCEN;
+	//ADC moins de 14MHZ pour que le périph fonctionne
+	//divise par 8 la fréquence d'entrée (80MHZ)
+ RCC->CFGR |= 0x30000000;//divise par 8
+	//activer l'ADC avec ADEN le reg CR p.591
+	ADC1 ->CR |= 0<<3; //JADSTART 0
+	ADC1 ->CR |= 0<<2; //ADSTART 0
+	ADC1 ->CR |= 0<<4; //ADSTP 0
+	ADC1 ->CR |= 0<<1; //ADDIS 0
+	ADC1 ->CR |= 0<<0; //JADSTART 0
+	ADC1 ->CR |= 0<<28; //ADVRGEN 0
+	//attente demarrage du regulateur
+	ADC1 ->CR |= 1<<0;
+	
+ //choisir la voie de conversion
+ //reg SQRx spécifie la séquence des voies 
+	//sur lesquelles les conversions sont réalisées
+//exemple définir une séquence composée de IN3, IN4, IN1, IN16
+//décrite l'ordre réalisés les conversions
+	//voies 3,4,1 et 16
+	//le nombre de voies à convertir est à indiques dans L le reg SQR1
+	//ICI convertir la voie 8 donc ecrit dans L la valeur 0 (crspd à 1 conversion)
+	//et dans le premier champ de SQR3 la vzleur 8 soit
+	ADC1->SQR1 &=  ADC_SQR1_L; //écrire dans L la valeur 0 (correspond à 1 conversion)
+  ADC1->SQR3|= 1; //convertir la voies 8
+	//lancer la calibration pour corriger les erreurs de mesure
+	//mettre à 1 le bit CAL du registre CR2 
+	//et attendre qu'il repasse à 0 ce qui signifie que la calibration a bien été réalisée Soit:
+	ADC1->CR |= 0xA0000000; //ADC_CR2_CAL; //début de la calibration
+	while (ADC1->CR & 0xA0000000);//attente de la fin de la calibration
+	
+	
+}
+
+//fonctin pour lancer la conversion et retourner le résultat
+//lancer la conversion avec ADEN qui a un double rôle
+//(activer l'ADC en le mettant à 1 et lancer une nouvelle conversion
+//pas nécessaire de repasser à 0 ce bit et si vous le faites on éteint l'ADC
+//et la prochaine écriture à 1 réactiverait celui-ci sans lancer d'acquisition.
+//lancer une nouvelle acquisition écrire à 1 déjà le bit à 1.
+//c'est ici l'accès en écriture qui prime sur la valeur contenue
+ int convert_single(){
+	 ADC1->CR |= ADC_CR_ADEN; // lancement de la conversion
+	//Mécanisme de scrutation de fin de conversion (pas d'interruption ici)
+	//on guette le passage à 1 du bit EOC du reg SR.
+	
+    while(!(ADC1->CR & ADC_CSR_EOC_SLV) ) 
+    {
+		
+		} // attente de la fin de conversion
+    //la valeur de la conversion est codée 
+		//sur les 12 premiers bits du registre
+		ADC1->CR &= ~ADC_CSR_EOC_SLV; // validation de la conversion
+    return ADC1->DR &=  ~((0xFFFFFFFF)<<12); // retour de la conversion
+	
+}
+
+
