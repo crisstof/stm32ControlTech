@@ -128,8 +128,32 @@ Nous pouvons maintenant travaller avec le micro-contrôleur
 ************************************************************************************************************
 Mise en place de l'architecture C/C++ sur stm32
 ===============================================
+le main.cpp
+nous avons en include (board, powerandclocks, rtc, connecsens, logger)
 
+#define VECT_TAB_OFFSET 0x20000 //prendre en compte le bootloader
 
+static ConnecSens  _env;
+
+int main(void)
+{ bool res, res_previous;
+  uint32_t  refMs;
+
+  HAL_Init();
+  pwrclk_init();
+  rtc_init();
+
+  //De-activate systick
+  SysTick->CTRL &= ~(SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk);
+
+  //Use JTAG GPIO pins
+  gpio_use_gpios_with_ids(JTAG_SWDIO_GPIO, JTAG_SWDCLK_GPIO);
+
+  _env.initialisation();
+
+  switch(_env.workingMode())
+  {
+    
 
 
 
