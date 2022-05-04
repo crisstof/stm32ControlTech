@@ -7,9 +7,9 @@ Microcontrôleur Nucleo-L476RG.
 Atollic/choisir son workspace_application
 File>New CProject>name (application)
      Executable:
-          	Embedded V Project>Atollic ARM Tools (ce qui nous amène à choisir le stm32L476RG)
-		STM32L4>NUCLEO-L476RG
-
+          	Embedded V Project>C/CPP>Atollic ARM Tools (ce qui nous amène à choisir le stm32L476RG)
+		STM32L4>NUCLEO-L476RG  (standard C/C++)
+		
 
 
 
@@ -26,11 +26,11 @@ Embedded CProject>Atollic ARM Tools
 
 ****************************************************************************
 discussions
-pour avoir dans debug l'applicaiton.elf et application.binary!
+pour avoir dans debug l'application.elf et application.binary!
 project>properties C/C++ Build-> Builder type: Internal builder
 
 Librairies HAL cherche stm32lxx_hal_conf_template.h Copier/coller dans racine dossier Inc le fichier stm32lxx_hal_conf.h
-et ajouter au biud le fichier
+et ajouter au build le fichier
 Project/Properties dans C/C++ Build/Setting>C Compiler>Include path ../Inc
 
 
@@ -123,9 +123,11 @@ Ajouter le define dans  Driver/CMSIS/Device/ST/STM32L4xx/Include
 
 
 ************************************************************************************************************
-		ECTUELLEMENT NOUS AVONS LE PROJET AVEC BIBLIOTHEQUE HAL AVEC 0 ERREUR 0 AVERTISSEMENT
+		ACTUELLEMENT NOUS AVONS LE PROJET AVEC BIBLIOTHEQUE HAL AVEC 0 ERREUR 0 AVERTISSEMENT
 Nous pouvons maintenant travaller avec le micro-contrôleur
 ************************************************************************************************************
+Mise en place de l'architecture C/C++ sur stm32
+===============================================
 
 
 

@@ -221,10 +221,12 @@ typedef enum
   * @{
   */
 #define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+//Ajout
 #define ATOMIC_SET_BIT(REG, BIT)     ((REG) |= (BIT))
 
-
 #define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
+
+//Ajout
 #define ATOMIC_CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
 
 #define READ_BIT(REG, BIT)    ((REG) & (BIT))

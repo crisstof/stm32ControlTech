@@ -1,0 +1,115 @@
+C'est le Hello world des microcontrôleur  DEBUT
+Nous avons le l'application configurer sur STM32L476RG avec la librairie HAL/
+================================================================================================================================================
+Carte Nucleo
+LEDS
+La LED LD1 tricolore (vert, orange, rouge) LD1 (COM) renseigne sur ST-LINK état des communications. La couleur par défaut de LD1 est le rouge. 
+LD1 devient vert pour indiquer que communication est en cours entre le PC et le ST-LINK/V2-1:
+• Clignotement lent rouge/éteint : à la mise sous tension avant l'initialisation USB
+• Clignotement rapide rouge/éteint : après la première communication correcte entre le PC et ST-LINK/V2-1 (énumération)
+• LED rouge allumée : lorsque l'initialisation entre le PC et ST-LINK/V2-1 est terminée
+• LED verte allumée : après une initialisation réussie de la communication cible
+• Clignotant Rouge/Vert : pendant la communication avec la cible
+• Vert allumé : communication terminée et réussie
+• Orange allumé : échec de la communication
+LD3 PWR : la LED rouge indique que la partie STM32 est alimentée et que l'alimentation +5V est disponible
+PUSH-BUTTON
+B1 USER : le bouton utilisateur est connecté à l'I/O PC13 (broche 2) du STM32 microcontrôleur.
+B2 RESET : ce bouton poussoir est connecté à NRST, et est utilisé pour RESET le STM32 microcontrôleur.
+
+Led Utilisateur LD2:
+: la LED verte est une LED utilisateur connectée au signal ARDUINO® D13 correspondant vers STM32 I/O PA5 (broche 21) ou PB13 (broche 34) selon la cible STM32. Faire référence à Tableau 11 à Tableau 23 lorsque :
+• l'E/S est à la valeur HAUTE, la LED est allumée
+• l'I/O est LOW, la LED est éteinte
+
+INFORMATIONS:
+------------
+Attention :
+STM32 :
+Les pilotes de périphériques sont fréquemment mis à jour par les fournisseurs de silicium. Maintenir le
+la prise en charge cible de milliers de microcontrôleurs serait un énorme
+tâche chronophage. Nous recommandons donc à tous les développeurs STM32 d'utiliser le
+Générateur de code STM32CubeMX pour générer les dernières versions des pilotes, des piles
+et middleware pour votre projet.
+
+STM32CubeMX s'intègre parfaitement à Atollic TrueSTUDIO.
+Après l’installation de TrueStudio
+
+
+
+
+
+================================================================================================================================================
+Pour utiliser le GPIO I/O 	[Activer l'horloge et la régler si besoin
+				 Activer le port GPIOA
+				 Actionner le port PA5 ]
+Mode de sortie:
+GPIO_MODE_OUTPUT_PP             :Output Push Pull Mode
+Push-pull : mode de sortie dans lequel la tension appliquée à la broche est toujours forcée à 0 ou 1
+GPIO_MODE_OUTPUT_OD             :Output Open Drain Mode
+Open-drain : mode de sortie dans lequel le niveau de tension haut est fixé par le circuit connecté à la broche
+GPIO_MODE_AF_PP                         :Alternate Function Push Pull Mode 
+Alternate function push-pull : mode de sortie identique au mode push-pull, mais l’état de la broche est contrôlé par un autre périphérique que le port
+GPIO_MODE_AF_OD             : Alternate Function Open Drain Mode
+Alternate function open-drain : mode de sortie identique au mode open-drain, mais l’état de la broche est contrôlé par un autre périphérique que le port
+
+Comprendre la différence entre le Push-Pull et Open-Drain :
+Si vous choisissez un drain ouvert, la broche de sortie peut être LOW (Gnd) ou flottant tandis
+si vous choisissez Push Pull, la broche de sortie peut être HAUT ou BAS.
+---------------------------------------------------------------------------------------------------------
+main.c
+/* Includes */
+#include "stm32l4xx_hal.h" //Delay
+
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_gpio_ex.h"
+
+/* Variable statique */
+static GPIO_InitTypeDef init ;//variable de ce type pour l’initialisation
+
+int main(void)
+{
+  int i = 0;
+/* TODO - Add your application code here */
+
+  HAL_Init() ; //Initialisation comme la prise en compte des fonctions comme le Delay.
+ // SystemClock_config();
+  __HAL_RCC_GPIOA_CLK_ENABLE(); //active l'horloge du GPIOA
+
+  /*Initialise le port */
+  init.Mode = GPIO_MODE_OUTPUT_PP  ;
+  init.Pull = GPIO_PULLUP;
+  init.Speed = GPIO_SPEED_FREQ_HIGH ;//HIGH, MEDIUM
+  init.Pin = GPIO_PIN_5 ; //Led2
+  //INITIALISATION
+  HAL_GPIO_Init(GPIOA, &init) ;
+
+  /* Infinite loop */
+  while (1)
+  {
+	i++;
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	HAL_Delay(2000);
+  }
+}
+---------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
