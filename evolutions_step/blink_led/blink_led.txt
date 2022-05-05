@@ -57,10 +57,11 @@ Comprendre la différence entre le Push-Pull et Open-Drain :
 Si vous choisissez un drain ouvert, la broche de sortie peut être LOW (Gnd) ou flottant tandis
 si vous choisissez Push Pull, la broche de sortie peut être HAUT ou BAS.
 ---------------------------------------------------------------------------------------------------------
-main.c
+main.cpp
 /* Includes */
-#include "stm32l4xx_hal.h" //Delay
+#include "stm32l4xx.h"
 
+#include "stm32l4xx_hal.h" //Delay
 #include "stm32l4xx_hal_gpio.h"
 #include "stm32l4xx_hal_gpio_ex.h"
 
