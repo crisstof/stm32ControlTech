@@ -1406,3 +1406,9 @@ This warning can be switched off on the Team > Git > Confirmations and Warnings 
 
 !ENTRY org.eclipse.core.net 1 0 2022-05-20 14:06:25.843
 !MESSAGE System property http.proxyPort is set to 8080 but should not be set.
+
+!ENTRY org.eclipse.cdt.core 1 0 2022-05-20 14:18:43.097
+!MESSAGE Indexed 'bootloader' (109 sources, 319 headers) in 31,6 sec: 47 924 declarations; 213 000 references; 0 unresolved inclusions; 153 syntax errors; 81 unresolved names (0,031 %)
+
+!ENTRY com.atollic.truestudio.productmanager 1 0 2022-05-20 15:39:10.475
+!MESSAGE Unloading product manager

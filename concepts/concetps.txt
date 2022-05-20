@@ -17,7 +17,7 @@ File>New CProject>name (application)
 et Embedded CProject>Atollic ARM Tools
                   Hardware configuration>STM32L4>Boards>NUCLEO-L476RG
 OU
-File>New C++ Project>name (appluication)
+File>New C++ Project>name (application)
 
 
 Embedded CProject>Atollic ARM Tools
