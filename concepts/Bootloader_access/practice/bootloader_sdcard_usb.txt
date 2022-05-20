@@ -1,0 +1,362 @@
+**********Bootloader**********
+stm32L476
+Jusqu’à 128 KB de SRAM dont 32Ko avec contrôle de parité matérielle.
+Up to 1 MB Flash , 2 banks read-while-write code readout protection.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+STM32L4xx_FLASH.Id
+
+/* Generate a link error if heap and stack don't fit into RAM */
+_Min_Heap_Size  = 0x2000;      /* required amount of heap  */
+_Min_Stack_Size = 0x2000; /* required amount of stack */
+
+
+Application:
+/* Specify the memory areas */
+MEMORY
+{
+RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 96K        //SRAM1 0x2000 0000 ok
+RAM2 (xrw)      : ORIGIN = 0x10000000, LENGTH = 32K       //SRAM2 0x1000 0000 ok
+FLASH (rx)      : ORIGIN = 0x08020000, LENGTH = 896K      //FLASH 0x08020000 Bank2 p.99 rm351 p.256
+}
+
+Bootloader:
+/* Specify the memory areas */
+MEMORY
+{
+FLASH (rx) : ORIGIN = 0x8000000,  LENGTH = 128K   //FLASH memory 0x8000000 ok
+RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 96K    //SRAM1 0x2000 0000 ok
+}
+---------------------------------------------------------------------------------------------------------------------------------------------
+Src/main.c
+#include "IAP.h"
+#include "flash_if.h"
+#include "main.h"
+#include "proc.h
+
+typedef  void (*pFunction)(void);
+
+USBD_HandleTypeDef USBD_Device;
+extern PCD_HandleTypeDef hpcd;
+
+FATFS 	SDFatFs;
+FIL 	MyFile;
+FRESULT fr;
+char 	SDPath[4];
+
+pFunction JumpToApplication;
+uint32_t JumpAddress;
+
+// From usbd_msc_scsi.c
+extern uint8_t usbd_msc_scsi_received_eject_and_stop_commands;
+
+
+static void SystemClock_Config(void);
+
+
+#define turn_led1_on() \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_14, GPIO_PIN_SET); \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3,  GPIO_PIN_SET)
+#define turn_led1_off() \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_14, GPIO_PIN_RESET); \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3,  GPIO_PIN_RESET)
+#define turn_led2_on() \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_13, GPIO_PIN_SET); \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4,  GPIO_PIN_SET)
+#define turn_led2_off() \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_13, GPIO_PIN_RESET); \
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4,  GPIO_PIN_RESET)
+
+#define remove_app_state_files() \
+  f_unlink("env/state.json"); \
+  f_unlink("env/sleep.json")
+
+int main(void)
+{
+  GPIO_InitTypeDef  GPIO_InitStruct;
+
+  HAL_Init();
+  SystemClock_Config();
+
+  // Configure LEDs
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  GPIO_InitStruct.Pin  = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_13 | GPIO_PIN_14;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  turn_led1_off();
+  turn_led2_off();
+
+  // Mount SD card
+  FATFS_LinkDriver((Diskio_drvTypeDef *)&SD_Driver, SDPath);
+  f_mount(&SDFatFs, (TCHAR const*)SDPath, 0);
+
+  // Check and set 'proc'
+  proc_check_and_set();
+
+  // Program new firmware if we find one
+  if(f_open(&MyFile, "FIRMWARE.BIN", FA_OPEN_EXISTING | FA_READ) == FR_OK)
+  {
+    turn_led2_on();
+    remove_app_state_files();
+
+    // Program
+    FLASH_If_Init();
+    IAP(    &MyFile);
+    f_close(&MyFile);
+
+    // Remove firmware file
+    f_unlink("FIRMWARE.BIN");
+
+    // Unmount SD card
+    FATFS_UnLinkDriver(SDPath);
+
+    HAL_NVIC_SystemReset();
+  }
+
+  // Configure USB cable sensing
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  GPIO_InitStruct.Pin  = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  // Is a USB cable plugged-in?
+  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_SET)
+  {
+    remove_app_state_files();
+
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWREx_EnableVddUSB();
+
+    USBD_Init(               &USBD_Device, &MSC_Desc, 0);
+    USBD_RegisterClass(      &USBD_Device, USBD_MSC_CLASS);
+    USBD_MSC_RegisterStorage(&USBD_Device, &USBD_DISK_fops);
+    USBD_Start(              &USBD_Device);
+
+    // Wait for USB cable unplugging.
+    while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_SET)
+    {
+      if(usbd_msc_scsi_received_eject_and_stop_commands)
+      {
+	USBD_Stop(&USBD_Device);
+      }
+
+      // Signal we are running the bootloader in USB communication
+      turn_led1_on();
+      turn_led2_off();
+      HAL_Delay(50);
+      turn_led1_off();
+      turn_led2_on();
+      HAL_Delay(50);
+    }
+
+    // Unmount SD card
+    FATFS_UnLinkDriver(SDPath);
+
+    HAL_NVIC_SystemReset();
+  }
+
+  // Unmount SD card
+  FATFS_UnLinkDriver(SDPath);
+
+  turn_led1_off();
+  turn_led2_off();
+
+  // Start application software
+  if(((*(__IO uint32_t*)APPLICATION_ADDRESS) & 0x2FFE0000 ) == 0x20000000)
+  {
+    // Set application address
+    JumpAddress       = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
+    JumpToApplication = (pFunction) JumpAddress;
+
+    // Init application stack pointer
+    __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
+
+    // Start application
+    JumpToApplication();
+  }
+
+  // We never should reach here
+  while(1) { NVIC_SystemReset(); }
+}
+
+static void SystemClock_Config(void)
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+
+#if defined (USB_USE_LSE_MSI_CLOCK)
+
+  /* Enable the LSE Oscilator */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_OFF;
+  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+  /* Enable the CSS interrupt in case LSE signal is corrupted or not present */
+  HAL_RCCEx_DisableLSECSS();
+
+  /* Enable MSI Oscillator and activate PLL with MSI as source */
+  RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState            = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.MSIClockRange       = RCC_MSIRANGE_11;
+  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLM            = 6;
+  RCC_OscInitStruct.PLL.PLLN            = 40;
+  RCC_OscInitStruct.PLL.PLLP            = 7;
+  RCC_OscInitStruct.PLL.PLLQ            = 4;
+  RCC_OscInitStruct.PLL.PLLR            = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    //	  while(1)
+  }
+
+  /* Enable MSI Auto-calibration through LSE */
+  HAL_RCCEx_EnableMSIPLLMode();
+
+  /* Select MSI output as USB clock source */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_MSI;
+  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+
+  /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 
+  clocks dividers */
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  {
+    //	  while(1);
+  }
+
+#elif defined (USB_USE_HSE_CLOCK)
+
+  /* Enable HSE Oscillator and activate PLL with HSE as source */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLN = 20;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLP = 7;
+  RCC_OscInitStruct.PLL.PLLQ = 4;  
+
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK);
+
+  /* Select PLLSAI output as USB clock source */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1N = 24;
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1Q = 4; 
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1P = 1;
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1M = 1;
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSE;
+  PeriphClkInitStruct.PLLSAI1.PLLSAI1ClockOut= RCC_PLLSAI1_48M2CLK;
+
+  if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)!= HAL_OK);
+
+  /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 
+  clocks dividers */
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK);
+
+#endif /* USB_USE_LSE_MSI_CLOCK */
+}
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+Calcul Mémory
+sur un octet de 0000 0000 à 1111 1111 nous pouvons coder 2p8 = 256 signes ou lettres
+disque dure kilo binaire (pc en octet base 2) et kilo décimal (base 10 correpsond à 1000)
+0100 0000 0000 bits donc 10000000000 bits correspond à 1024  (2p10)
+0011 1111 1111   (1K) sinon (2K) 0111 1111 1111
+ 3   F     F                      7   F     F
+
+1 kibi = 210 = 1 024
+1 mebi = 220 = 1 048 576
+1 gibi = 230 = 1 073 741 824
+1 tebi = 240 = 1 099 511 627 776
+
+
+0x0800 0000  -  0x0800 07FF  (2K)
+                       0000 0000 0000 0000
+                             111 1111 1111  (2K)
+0x0800 07FF
+
+
+0x0807 F800   0000 1000 0000 0111  1111 1000 0000 0000
+			                 111 1111 1111
+              0000 1000 0000 0111  1111 1111 1111 1111             
+0x0807 FFFF
+
+
+pour 1K
+0x1FFF 7000:  0001 1111 1111 1111 0111 0000 0000 0000
+                                       0111 1111 1111  
+                                       0011  
+cela veut dire que 1K 0011 1111 1111 = 1K 
+- 0x1FFF 73FF
+
+
+Mappé un bit: L'exemple suivant montre comment mapper le bit 2 de l'octet situé à l'adresse SRAM1 0x20000300 à la région d'alias :
+------------
+0x22006008 = 0x22000000 + (0x300*32) + (2*4)
+L'écriture à l'adresse 0x22006008 a le même effet qu'une opération de lecture-modification-écriture sur le bit 2 de l'octet à l'adresse SRAM1 0x20000300.
+L'adresse de lecture 0x22006008 renvoie la valeur (0x01 ou 0x00) du bit 2 de l'octet en SRAM1 adresse 0x20000300 (0x01 : bit activé ; 0x00 : bit réinitialisé).
+Pour plus d'informations sur les bandes de bits, reportez-vous au manuel de programmation Cortex®-M4 
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
