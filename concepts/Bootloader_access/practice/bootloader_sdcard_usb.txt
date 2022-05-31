@@ -276,6 +276,12 @@ static void SystemClock_Config(void)
 #endif /* USB_USE_LSE_MSI_CLOCK */
 }
 --------------------------------------------------------------------------------------------------------------------------------------------
+#include dans main.c
+IAP.h, flash_if.h, main.h, proc.h
+#include dans main.h
+usbd_core.h, usbd_desc.h, usbd_msc.h, usbd_storage.h, stm32l476g_eval.h, stm32l476g_eval_sd.h
+FarFs includes component
+ff_gen_drv.h, sd_diskio.h
 
 
 
