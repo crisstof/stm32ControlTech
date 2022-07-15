@@ -33,6 +33,8 @@ SOFTWARE.
 #include "stm32l4xx_hal.h" //Delay
 #include "stm32l4xx_hal_gpio.h"
 #include "stm32l4xx_hal_gpio_ex.h"
+#include <stdio.h> //pour le C
+#include <iostream> //pour le C++
 
 /* Private macro */
 /* Private variables */
@@ -83,6 +85,6 @@ int main(void)
    {
  	i++;
  	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
- 	HAL_Delay(2000);
+ 	HAL_Delay(5000);
    }
  }

@@ -9,10 +9,6 @@ File>New CProject>name (application)
      Executable:
           	Embedded V Project>C/CPP>Atollic ARM Tools (ce qui nous amène à choisir le stm32L476RG)
 		STM32L4>NUCLEO-L476RG  (standard C/C++)
-		
-
-
-
 
 et Embedded CProject>Atollic ARM Tools
                   Hardware configuration>STM32L4>Boards>NUCLEO-L476RG

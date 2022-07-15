@@ -15,7 +15,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, DATA
   5 .data         0000000c  20000000  0800103c  00020000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  6 .ram2         00000000  10000000  10000000  0002000c  2**0
+  6 .ram2         00000000  00000000  00000000  0002000c  2**0
                   CONTENTS
   7 .bss          00000080  2000000c  2000000c  0002000c  2**2
                   ALLOC

@@ -4771,8 +4771,8 @@ Memory Configuration
 Name             Origin             Length             Attributes
 FLASH            0x08000000         0x00100000         xr
 RAM              0x20000000         0x00018000         xrw
-RAM2             0x10000000         0x00008000         rw
-MEMORY_B1        0x60000000         0x00000000         xr
+RAM2             0x00000000         0xffffffff
+MEMORY_B1        0x00000000         0xffffffff
 *default*        0x00000000         0xffffffff
 
 Linker script and memory map
@@ -5203,14 +5203,14 @@ LOAD c:/program files (x86)/atollic/truestudio for stm32 9.3.0/armtools/bin/../l
 .igot.plt       0x2000000c        0x0 load address 0x08001048
  .igot.plt      0x2000000c        0x0 c:/program files (x86)/atollic/truestudio for stm32 9.3.0/armtools/bin/../lib/gcc/arm-atollic-eabi/6.3.1/armv7e-m/fpu/crtbegin.o
 
-.ram2           0x10000000        0x0 load address 0x08001048
-                0x10000000                . = ALIGN (0x4)
-                0x10000000                _sram2 = .
+.ram2           0x00000000        0x0 load address 0x08001048
+                0x00000000                . = ALIGN (0x4)
+                0x00000000                _sram2 = .
  *(.ram2)
  *(.ram2*)
-                0x10000000                . = ALIGN (0x4)
-                0x10000000                _eram2 = .
-                0x10000000                . = ALIGN (0x4)
+                0x00000000                . = ALIGN (0x4)
+                0x00000000                _eram2 = .
+                0x00000000                . = ALIGN (0x4)
 
 .bss            0x2000000c       0x80
                 0x2000000c                _sbss = .
